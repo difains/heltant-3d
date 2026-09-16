@@ -84,6 +84,19 @@ export class PlayerAvatar {
 
     this.group.add(this.swordGroup);
 
+    // Traveler Cloak / Cape (후치의 여행자 망토)
+    const capeGeom = new THREE.PlaneGeometry(0.68, 1.05, 4, 4);
+    capeGeom.translate(0, -0.5, 0); // Pivot at shoulders
+    const capeMat = new THREE.MeshStandardMaterial({
+      color: 0x422d20,
+      roughness: 0.88,
+      side: THREE.DoubleSide
+    });
+    this.cape = new THREE.Mesh(capeGeom, capeMat);
+    this.cape.position.set(0, 1.7, -0.21);
+    this.cape.castShadow = true;
+    this.group.add(this.cape);
+
     // 4. Arms & OPG (Ogre Power Gauntlets)
     this.leftArm = new THREE.Group();
     this.leftArm.position.set(-0.45, 1.65, 0);
@@ -195,6 +208,16 @@ export class PlayerAvatar {
       this.matGauntlet.emissiveIntensity = 2.0 + Math.sin(this.walkCycle * 6) * 0.8;
       this.auraMesh.position.copy(this.group.position).add(new THREE.Vector3(0, 1.2, 0));
       this.auraMesh.rotation.y += delta * 4.0;
+    }
+
+    // Cape flutter physics
+    if (this.cape) {
+      if (isMoving) {
+        const flutter = (isRunning ? 0.45 : 0.22) + Math.sin(this.walkCycle * 2) * (isRunning ? 0.25 : 0.12);
+        this.cape.rotation.x = flutter;
+      } else {
+        this.cape.rotation.x = 0.08 + Math.sin(this.walkCycle) * 0.04;
+      }
     }
   }
 
