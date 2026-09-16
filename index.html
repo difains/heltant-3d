@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>드래곤 라자: 헬턴트 영지 3D 탐험 (Project Heltant 3D)</title>
+  <title>드래곤 라자 : 헬턴트 영지 (Seijaku Quality 3D)</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
   <script type="importmap">
   {
     "imports": {
@@ -24,33 +24,40 @@
   <!-- Reticle / Crosshair for 1st Person -->
   <div id="crosshair"></div>
 
-  <!-- HUD Overlay -->
+  <!-- HUD Overlay (Seijaku Aesthetic) -->
   <div id="hud">
-    <!-- Top Left: Title & Lore Header -->
-    <div id="title-badge">
-      <div class="badge-sub">DRAGON RAJA · THE FRONTIER</div>
-      <h1 class="badge-title">바이서스 북서부 국경 · 헬턴트 영지</h1>
-      <div class="badge-desc" id="current-location-text">현재 위치: 마을 중앙 광장</div>
+    <!-- Top Left: Minimalist Brand & Chapter Title -->
+    <div id="brand-header">
+      <div class="brand-sub">DRAGON RAJA · CHAPTER 01</div>
+      <h1 class="brand-title">헬턴트 영지 <span class="brand-hanja">靜寂 (Seijaku)</span></h1>
+      <div class="brand-loc" id="current-location-text">마을 중앙 광장과 석조 우물</div>
     </div>
 
-    <!-- Top Right: Minimap Radar -->
-    <div id="minimap-container">
-      <canvas id="minimap-canvas" width="180" height="180"></canvas>
-      <div id="minimap-label">HELANT MAP</div>
-      <div id="compass-n">N</div>
-      <div id="compass-w">서쪽 숲 (아무르타트)</div>
+    <!-- Top Right: Audio Equalizer & Radar Minimap -->
+    <div id="top-right-group">
+      <div id="ambience-control">
+        <div class="eq-bars" id="audio-eq">
+          <i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <span id="ambience-label">AMBIENCE : ON</span>
+      </div>
+
+      <div id="minimap-container">
+        <canvas id="minimap-canvas" width="180" height="180"></canvas>
+        <div id="minimap-label">HELTANT MAP</div>
+        <div id="compass-n">N</div>
+        <div id="compass-w">서쪽 숲 (아무르타트)</div>
+      </div>
     </div>
 
-    <!-- Bottom Left: Controls Guide & Status -->
+    <!-- Bottom Left: Elegant Controls Guide -->
     <div id="controls-panel">
-      <div class="panel-header">조작 안내</div>
-      <div class="control-row"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 이동</div>
-      <div class="control-row"><span class="key">Shift</span> 달리기 · <span class="key">Space</span> 점프</div>
+      <div class="panel-header">EXPLORATION CONTROLS</div>
+      <div class="control-row"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 이동 · <span class="key">Shift</span> 달리기 · <span class="key">Space</span> 점프</div>
       <div class="control-row"><span class="key">마우스 좌클릭</span> 시점 회전 (화면 고정)</div>
-      <div class="control-row"><span class="key">V</span> 1인칭 / 3인칭 시점 전환 (<span id="view-mode-label">1인칭</span>)</div>
+      <div class="control-row"><span class="key">V</span> 시점 전환 (<span id="view-mode-label">1인칭</span>) · <span class="key">C</span> 시네마틱 투어 (<span id="tour-mode-label">OFF</span>)</div>
       <div class="control-row"><span class="key">G</span> OPG(오거 파워 건틀릿) <span id="opg-status-text" class="status-off">[OFF]</span></div>
-      <div class="control-row"><span class="key">T</span> 시간대 전환 (<span id="tod-mode-label">황혼 석양</span>)</div>
-      <div class="control-row"><span class="key">M</span> 사운드 켜기/끄기</div>
+      <div class="control-row"><span class="key">T</span> 시간대 전환 (<span id="tod-mode-label">황혼 석양</span>) · <span class="key">M</span> 음소거</div>
     </div>
 
     <!-- Center Interaction Prompt -->
@@ -91,24 +98,24 @@
     </div>
   </div>
 
-  <!-- Start / Audio Enable Overlay Screen -->
+  <!-- Start Screen Overlay (Seijaku Aesthetic) -->
   <div id="start-screen">
     <div class="start-card">
-      <div class="start-crown">✦ ✦ ✦</div>
+      <div class="start-eyebrow">DRAGON RAJA · INTERACTIVE 3D VIZ</div>
       <h1 class="start-title">드래곤 라자 : 헬턴트</h1>
       <p class="start-subtitle">"인간은 단수가 아니다. 우리는 복수다."</p>
       <p class="start-desc">
-        바이서스 왕국 서쪽 변방, '석양의 감시자' 블랙 드래곤 아무르타트의 위협에 둘러싸인 
-        후치 네드발의 고향 <b>헬턴트 마을</b>을 3D로 탐험해보세요.
+        서쪽 하늘을 비행하는 '석양의 감시자' 블랙 드래곤 아무르타트의 위협과 
+        후치 네드발의 시작 마을 <b>헬턴트 영지</b>를 <b>시네마틱 3D(Bloom, IBL, PBR)</b>로 경험해보세요.
       </p>
       <div class="start-features">
-        <div class="feat-item">🏰 7대 원작 랜드마크 구현</div>
-        <div class="feat-item">🥊 OPG(오거 파워 건틀릿) 마력 체험</div>
-        <div class="feat-item">🌅 서쪽 숲 황혼 / 밤 / 아침 조명 무드</div>
-        <div class="feat-item">🚶 1인칭 및 3인칭 보행 내비게이션</div>
+        <div class="feat-item">✨ Unreal Bloom & IBL 반사광</div>
+        <div class="feat-item">🏰 정교한 중세 PBR 건축 & 랜드마크</div>
+        <div class="feat-item">🌅 서쪽 지평선 아무르타트 실시간 비행</div>
+        <div class="feat-item">🎬 자유 보행 & 시네마틱 카메라 투어</div>
       </div>
-      <button id="start-btn" class="btn-primary">헬턴트 마을로 들어가기</button>
-      <div class="start-subnote">※ 클릭 시 오디오 앰비언스가 활성화되며 마우스 시점 고정이 시작됩니다.</div>
+      <button id="start-btn" class="btn-primary">헬턴트 영지로 들어가기</button>
+      <div class="start-subnote">※ 클릭 시 Web Audio 앰비언스가 활성화되며 3D 뷰어가 시작됩니다.</div>
     </div>
   </div>
 
