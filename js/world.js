@@ -1,6 +1,7 @@
 /**
- * Dragon Raja: Heltant 3D - Environment, Terrain, Trees, Stream & Particles
- * Implements roads, vegetation, river bridge, smoke, and floating embers.
+ * Dragon Raja: Heltant 3D - Seijaku-Grade Environment & World Systems
+ * Implements wet cobblestone paths, reflective water canal, God Rays sun glow,
+ * drifting golden leaves, and the Black Dragon Amstatus (석양의 감시자 아무르타트).
  */
 import * as THREE from 'three';
 
@@ -18,6 +19,7 @@ export class WorldManager {
     this.initPropsAndDetails();
     this.initParticles();
     this.initAmstatusDragonSilhouette();
+    this.initSunsetGodRays();
   }
 
   initTerrain() {
@@ -25,20 +27,19 @@ export class WorldManager {
     const geom = new THREE.PlaneGeometry(size, size, 32, 32);
     geom.rotateX(-Math.PI / 2);
 
-    // Procedural terrain texture
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#473d2a'; // Base frontier dirt
+    ctx.fillStyle = '#3c3222';
     ctx.fillRect(0, 0, 512, 512);
 
-    // Grass patches
-    ctx.fillStyle = 'rgba(68, 88, 48, 0.45)';
-    for (let i = 0; i < 400; i++) {
+    // Subtle mossy earth gradients
+    ctx.fillStyle = 'rgba(56, 74, 38, 0.4)';
+    for (let i = 0; i < 450; i++) {
       const x = Math.random() * 512;
       const y = Math.random() * 512;
-      const r = 8 + Math.random() * 25;
+      const r = 10 + Math.random() * 30;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
@@ -50,7 +51,7 @@ export class WorldManager {
 
     const mat = new THREE.MeshStandardMaterial({
       map: groundTex,
-      roughness: 0.95,
+      roughness: 0.9,
       metalness: 0.05
     });
 
@@ -59,7 +60,6 @@ export class WorldManager {
     ground.position.y = -0.05;
     this.scene.add(ground);
 
-    // Outer world boundary fences/invisible colliders (prevent falling off)
     const bHalf = size / 2 - 5;
     this.colliders.push({ minX: -bHalf, maxX: bHalf, minZ: -bHalf, maxZ: -bHalf + 2, name: 'North Boundary' });
     this.colliders.push({ minX: -bHalf, maxX: bHalf, minZ: bHalf - 2, maxZ: bHalf, name: 'South Boundary' });
@@ -68,86 +68,96 @@ export class WorldManager {
   }
 
   initRoads() {
-    // Cobblestone path canvas texture
+    // Wet Cobblestone Paving (Dream Target aesthetic)
     const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
+    canvas.width = 512;
+    canvas.height = 512;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#6b6357';
-    ctx.fillRect(0, 0, 256, 256);
-    ctx.fillStyle = '#453f36';
-    for (let i = 0; i < 350; i++) {
-      const rx = Math.random() * 256;
-      const ry = Math.random() * 256;
-      ctx.fillRect(rx, ry, 6 + Math.random() * 8, 4 + Math.random() * 6);
+    ctx.fillStyle = '#443e37';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Individual rounded pavers
+    const pw = 28, ph = 18;
+    for (let y = 0; y < 512; y += ph) {
+      const shift = (Math.floor(y / ph) % 2 === 0) ? 0 : 14;
+      for (let x = -14 + shift; x < 512; x += pw) {
+        ctx.fillStyle = '#221f1c'; // Mortar
+        ctx.fillRect(x, y, pw, ph);
+
+        // Stone top
+        ctx.fillStyle = (Math.random() > 0.4) ? '#5c5449' : '#696053';
+        ctx.beginPath();
+        ctx.roundRect(x + 2, y + 2, pw - 4, ph - 4, 3);
+        ctx.fill();
+
+        // Wet stone specular sheen
+        ctx.fillStyle = 'rgba(255, 230, 200, 0.15)';
+        ctx.fillRect(x + 3, y + 3, pw - 6, 2);
+      }
     }
 
     const roadTex = new THREE.CanvasTexture(canvas);
     roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
-    roadTex.repeat.set(1, 8);
+    roadTex.repeat.set(1, 10);
 
+    // Low roughness gives realistic wet-stone reflections
     const roadMat = new THREE.MeshStandardMaterial({
       map: roadTex,
-      roughness: 0.9,
-      metalness: 0.1
+      roughness: 0.52,
+      metalness: 0.25
     });
 
-    // Central road network connecting landmarks
     const roads = [
-      { x: 0, z: -18, w: 4.8, l: 36, rot: 0 },         // North to Karl's Manor
-      { x: 9, z: -5, w: 4.2, l: 20, rot: Math.PI / 2.3 }, // North-East to Hooch's Workshop
-      { x: -18, z: 8, w: 4.5, l: 26, rot: -Math.PI / 3 }, // South-West to Tavern
-      { x: 8, z: 12, w: 4.2, l: 24, rot: Math.PI / 4 },   // South to Sanson's Smithy
-      { x: -20, z: -4, w: 5.0, l: 38, rot: Math.PI / 2 }, // West to Watchtower & Palisade
-      { x: 18, z: 4, w: 4.2, l: 30, rot: Math.PI / 2 }    // East to Watermill & Bridge
+      { x: 0, z: -18, w: 5.2, l: 36, rot: 0 },
+      { x: 9, z: -5, w: 4.6, l: 20, rot: Math.PI / 2.3 },
+      { x: -18, z: 8, w: 4.8, l: 26, rot: -Math.PI / 3 },
+      { x: 8, z: 12, w: 4.6, l: 24, rot: Math.PI / 4 },
+      { x: -20, z: -4, w: 5.4, l: 38, rot: Math.PI / 2 },
+      { x: 18, z: 4, w: 4.6, l: 30, rot: Math.PI / 2 }
     ];
 
     roads.forEach(r => {
       const plane = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.l), roadMat);
       plane.rotateX(-Math.PI / 2);
       plane.rotateZ(r.rot);
-      plane.position.set(r.x, 0.02, r.z);
+      plane.position.set(r.x, 0.03, r.z);
       plane.receiveShadow = true;
       this.scene.add(plane);
     });
   }
 
   initStreamAndBridge() {
-    // North-South River on the East side (x ~ 26 to 28)
     const streamL = 150;
-    const streamW = 6.5;
+    const streamW = 7.0;
     const riverBedGeom = new THREE.PlaneGeometry(streamW, streamL);
     riverBedGeom.rotateX(-Math.PI / 2);
 
-    // Water Surface
     const waterMat = new THREE.MeshStandardMaterial({
-      color: 0x225566,
-      roughness: 0.1,
-      metalness: 0.75,
+      color: 0x1a4555,
+      roughness: 0.05,
+      metalness: 0.9,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.88
     });
 
     this.waterMesh = new THREE.Mesh(riverBedGeom, waterMat);
-    this.waterMesh.position.set(27, 0.05, 0);
+    this.waterMesh.position.set(27, 0.06, 0);
     this.scene.add(this.waterMesh);
 
-    // Stone Arch Bridge over the Stream (at z = 4, connecting village to watermill)
+    // Stone Arch Bridge
     const bridgeGroup = new THREE.Group();
     bridgeGroup.position.set(27, 0, 4);
 
-    const archGeom = new THREE.BoxGeometry(7.5, 0.6, 4.2);
-    const archMat = new THREE.MeshStandardMaterial({ color: 0x5a554e, roughness: 0.9 });
-    const arch = new THREE.Mesh(archGeom, archMat);
-    arch.position.y = 0.5;
+    const archMat = new THREE.MeshStandardMaterial({ color: 0x58534c, roughness: 0.85, metalness: 0.1 });
+    const arch = new THREE.Mesh(new THREE.BoxGeometry(8.0, 0.7, 4.4), archMat);
+    arch.position.y = 0.55;
     arch.castShadow = true;
     arch.receiveShadow = true;
     bridgeGroup.add(arch);
 
-    // Railings
-    [-2.0, 2.0].forEach(rz => {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.8, 0.3), archMat);
-      rail.position.set(0, 1.1, rz);
+    [-2.1, 2.1].forEach(rz => {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(8.0, 0.85, 0.35), archMat);
+      rail.position.set(0, 1.2, rz);
       rail.castShadow = true;
       bridgeGroup.add(rail);
     });
@@ -156,30 +166,28 @@ export class WorldManager {
   }
 
   initTreesAndVegetation() {
-    // Tree Geometry templates
-    const pineTrunkGeom = new THREE.CylinderGeometry(0.3, 0.45, 3.5, 6);
-    const pineFoliageGeom = new THREE.ConeGeometry(2.4, 6.5, 7);
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 });
-    const darkPineMat = new THREE.MeshStandardMaterial({ color: 0x1f3624, roughness: 0.85 }); // Eerie dark forest
-    const autumnMat = new THREE.MeshStandardMaterial({ color: 0x9e431f, roughness: 0.85 });  // Autumn gold/red
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xb57821, roughness: 0.85 });
+    const pineTrunkGeom = new THREE.CylinderGeometry(0.35, 0.5, 3.8, 8);
+    const pineFoliageGeom = new THREE.ConeGeometry(2.6, 7.0, 8);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3b2515, roughness: 0.9 });
+    const darkPineMat = new THREE.MeshStandardMaterial({ color: 0x182c1c, roughness: 0.85 });
+    const autumnMat = new THREE.MeshStandardMaterial({ color: 0x9a3e1b, roughness: 0.82 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xb57821, roughness: 0.82 });
 
-    // 1. Dense Western Pine Forest (아무르타트의 숲 - 서쪽 숲 지대)
-    for (let i = 0; i < 65; i++) {
+    // Western Dark Pine Forest
+    for (let i = 0; i < 70; i++) {
       const tree = new THREE.Group();
-      const tx = -44 - Math.random() * 32;
+      const tx = -44 - Math.random() * 35;
       const tz = -65 + Math.random() * 130;
-      const scale = 0.85 + Math.random() * 0.7;
+      const scale = 0.85 + Math.random() * 0.75;
 
       const trunk = new THREE.Mesh(pineTrunkGeom, trunkMat);
-      trunk.position.y = 1.75;
+      trunk.position.y = 1.9;
       trunk.castShadow = true;
       tree.add(trunk);
 
-      // Multiple tiers of dark pine needles
       for (let t = 0; t < 3; t++) {
         const needle = new THREE.Mesh(pineFoliageGeom, darkPineMat);
-        needle.position.y = 3.5 + t * 2.2;
+        needle.position.y = 3.8 + t * 2.3;
         needle.scale.set(1.0 - t * 0.22, 1.0 - t * 0.15, 1.0 - t * 0.22);
         needle.castShadow = true;
         tree.add(needle);
@@ -188,25 +196,23 @@ export class WorldManager {
       tree.position.set(tx, 0, tz);
       tree.scale.set(scale, scale, scale);
       this.scene.add(tree);
-
       this.colliders.push({ minX: tx - 0.8, maxX: tx + 0.8, minZ: tz - 0.8, maxZ: tz + 0.8, name: 'Pine Tree' });
     }
 
-    // 2. Village Autumn Trees (Scattered around plaza and houses)
-    const villageTreeCoords = [
-      [10, -22], [5, 18], [-12, -18], [-8, 22], [28, -25], [26, 26], [-28, -28], [-18, 30]
+    // Village Autumn Trees
+    const villageTrees = [
+      [11, -22], [5, 19], [-12, -18], [-8, 22], [28, -25], [26, 26], [-28, -28], [-18, 30]
     ];
-
-    villageTreeCoords.forEach(([vx, vz], idx) => {
+    villageTrees.forEach(([vx, vz], idx) => {
       const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 4.0, 6), trunkMat);
-      trunk.position.y = 2.0;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.55, 4.2, 8), trunkMat);
+      trunk.position.y = 2.1;
       trunk.castShadow = true;
       tree.add(trunk);
 
       const folMat = (idx % 2 === 0) ? autumnMat : goldMat;
-      const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(2.8, 1), folMat);
-      foliage.position.y = 5.2;
+      const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(3.0, 1), folMat);
+      foliage.position.y = 5.5;
       foliage.castShadow = true;
       tree.add(foliage);
 
@@ -217,96 +223,78 @@ export class WorldManager {
   }
 
   initPropsAndDetails() {
-    // Village Wooden Fences, Hay bales, Carts
-    const fenceMat = new THREE.MeshStandardMaterial({ color: 0x543c29, roughness: 0.9 });
-    const postGeom = new THREE.BoxGeometry(0.2, 1.4, 0.2);
-    const railGeom = new THREE.BoxGeometry(2.2, 0.12, 0.08);
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x4f3724, roughness: 0.88 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x242428, roughness: 0.4, metalness: 0.8 });
 
-    const createFenceSection = (sx, sz, count, dx, dz) => {
-      for (let f = 0; f < count; f++) {
-        const post = new THREE.Mesh(postGeom, fenceMat);
-        post.position.set(sx + f * dx, 0.7, sz + f * dz);
-        post.castShadow = true;
-        this.scene.add(post);
-
-        if (f < count - 1) {
-          const rail1 = new THREE.Mesh(railGeom, fenceMat);
-          rail1.position.set(sx + f * dx + dx / 2, 0.5, sz + f * dz + dz / 2);
-          rail1.rotation.y = Math.atan2(dz, dx);
-          this.scene.add(rail1);
-
-          const rail2 = new THREE.Mesh(railGeom, fenceMat);
-          rail2.position.set(sx + f * dx + dx / 2, 0.95, sz + f * dz + dz / 2);
-          rail2.rotation.y = Math.atan2(dz, dx);
-          this.scene.add(rail2);
-        }
-      }
-    };
-
-    // Pasture fences south of tavern
-    createFenceSection(-14, 25, 7, -2.0, 0);
-    createFenceSection(-28, 25, 6, 0, -2.0);
-
-    // Hay bales near blacksmith and tavern
-    const hayMat = new THREE.MeshStandardMaterial({ color: 0xb59e4e, roughness: 0.95 });
-    const hayCoords = [[14, 15], [15.2, 15], [14.6, 16.2], [-14, 23]];
-    hayCoords.forEach(([hx, hz]) => {
-      const bale = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.2, 8), hayMat);
-      bale.position.set(hx, 0.6, hz);
-      bale.rotation.z = Math.PI / 2;
-      bale.castShadow = true;
-      this.scene.add(bale);
+    // Wooden Crates & Stacks near Central Plaza
+    const crateGeom = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+    const crateCoords = [
+      [5.5, 0.55, -2.5], [6.6, 0.55, -2.5], [6.0, 1.65, -2.5],
+      [-5.8, 0.55, 3.5], [-6.8, 0.55, 3.5]
+    ];
+    crateCoords.forEach(([cx, cy, cz]) => {
+      const crate = new THREE.Mesh(crateGeom, woodMat);
+      crate.position.set(cx, cy, cz);
+      crate.castShadow = true;
+      crate.receiveShadow = true;
+      this.scene.add(crate);
     });
 
-    // Frontier Wooden Freight Wagon
-    const wagonGroup = new THREE.Group();
-    wagonGroup.position.set(7, 0, -16);
-    const wagonBody = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.8, 4.2), fenceMat);
-    wagonBody.position.y = 1.0;
-    wagonGroup.add(wagonBody);
+    // Market Stall with Striped Canopy
+    const stall = new THREE.Group();
+    stall.position.set(-6.5, 0, -8.0);
+    const counter = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.1, 1.4), woodMat);
+    counter.position.y = 0.55;
+    stall.add(counter);
 
-    for (let w = 0; w < 4; w++) {
-      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.15, 10), fenceMat);
-      wheel.rotation.z = Math.PI / 2;
-      wheel.position.set((w % 2 === 0 ? -1.3 : 1.3), 0.55, (w < 2 ? -1.4 : 1.4));
-      wagonGroup.add(wheel);
-    }
-    this.scene.add(wagonGroup);
-    this.colliders.push({ minX: 5.5, maxX: 8.5, minZ: -18.5, maxZ: -13.5, name: 'Wagon' });
+    [-1.4, 1.4].forEach(px => {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.8, 8), woodMat);
+      pole.position.set(px, 1.4, 0.6);
+      stall.add(pole);
+    });
+
+    const canopyGeom = new THREE.BoxGeometry(3.6, 0.15, 2.0);
+    const canopyMat = new THREE.MeshStandardMaterial({ color: 0xa84832, roughness: 0.7 });
+    const canopy = new THREE.Mesh(canopyGeom, canopyMat);
+    canopy.position.set(0, 2.8, 0.2);
+    canopy.rotation.x = 0.2;
+    stall.add(canopy);
+
+    this.scene.add(stall);
+    this.colliders.push({ minX: -8.5, maxX: -4.5, minZ: -9.5, maxZ: -6.5, name: 'Market Stall' });
   }
 
   initParticles() {
-    // 1. Chimney Smoke Particles
+    // 1. Chimney Smoke
     const smokeCount = 45;
     const smokeGeom = new THREE.BufferGeometry();
     const smokePos = new Float32Array(smokeCount * 3);
     const smokeVel = [];
 
     const chimneys = [
-      { x: 14.8, y: 7.8, z: -11.8 }, // Hooch House
-      { x: -22.0, y: 8.2, z: 12.0 },  // Tavern
-      { x: -3.2, y: 10.5, z: -37.8 }  // Karl Manor
+      { x: 14.5, y: 8.0, z: -12.0 },
+      { x: -22.0, y: 8.5, z: 12.0 },
+      { x: -3.5, y: 11.0, z: -38.0 }
     ];
 
     for (let i = 0; i < smokeCount; i++) {
       const c = chimneys[i % chimneys.length];
-      smokePos[i * 3] = c.x + (Math.random() - 0.5) * 0.4;
-      smokePos[i * 3 + 1] = c.y + Math.random() * 4.0;
-      smokePos[i * 3 + 2] = c.z + (Math.random() - 0.5) * 0.4;
+      smokePos[i * 3] = c.x + (Math.random() - 0.5) * 0.5;
+      smokePos[i * 3 + 1] = c.y + Math.random() * 4.5;
+      smokePos[i * 3 + 2] = c.z + (Math.random() - 0.5) * 0.5;
       smokeVel.push({
         baseX: c.x,
         baseY: c.y,
         baseZ: c.z,
-        vy: 0.8 + Math.random() * 0.8,
+        vy: 0.9 + Math.random() * 0.8,
         driftX: (Math.random() - 0.5) * 0.3
       });
     }
-
     smokeGeom.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
 
     const smokeMat = new THREE.PointsMaterial({
-      color: 0xd6cbb8,
-      size: 1.4,
+      color: 0xdfd4c2,
+      size: 1.8,
       transparent: true,
       opacity: 0.45,
       depthWrite: false
@@ -316,154 +304,186 @@ export class WorldManager {
     this.scene.add(smokeSystem);
 
     this.particles.push({
-      system: smokeSystem,
-      pos: smokePos,
-      vel: smokeVel,
       update: (delta) => {
         for (let i = 0; i < smokeCount; i++) {
           smokePos[i * 3 + 1] += smokeVel[i].vy * delta;
-          smokePos[i * 3] += (smokeVel[i].driftX + 0.15) * delta;
-          if (smokePos[i * 3 + 1] > smokeVel[i].baseY + 6.0) {
-            smokePos[i * 3] = smokeVel[i].baseX + (Math.random() - 0.5) * 0.4;
+          smokePos[i * 3] += (smokeVel[i].driftX + 0.18) * delta;
+          if (smokePos[i * 3 + 1] > smokeVel[i].baseY + 6.5) {
+            smokePos[i * 3] = smokeVel[i].baseX + (Math.random() - 0.5) * 0.5;
             smokePos[i * 3 + 1] = smokeVel[i].baseY;
-            smokePos[i * 3 + 2] = smokeVel[i].baseZ + (Math.random() - 0.5) * 0.4;
+            smokePos[i * 3 + 2] = smokeVel[i].baseZ + (Math.random() - 0.5) * 0.5;
           }
         }
         smokeGeom.attributes.position.needsUpdate = true;
       }
     });
 
-    // 2. Fire Sparks / Embers around Forge & Braziers
-    const sparkCount = 35;
-    const sparkGeom = new THREE.BufferGeometry();
-    const sparkPos = new Float32Array(sparkCount * 3);
-    for (let i = 0; i < sparkCount; i++) {
-      sparkPos[i * 3] = 13.0 + (Math.random() - 0.5) * 2.0; // Forge area
-      sparkPos[i * 3 + 1] = 1.6 + Math.random() * 2.5;
-      sparkPos[i * 3 + 2] = 22.0 + (Math.random() - 0.5) * 2.0;
-    }
-    sparkGeom.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+    // 2. Drifting Golden Autumn Leaves (Seijaku atmosphere)
+    const leafCount = 60;
+    const leafGeom = new THREE.BufferGeometry();
+    const leafPos = new Float32Array(leafCount * 3);
+    const leafVel = [];
 
-    const sparkMat = new THREE.PointsMaterial({
-      color: 0xff6600,
-      size: 0.25,
+    for (let i = 0; i < leafCount; i++) {
+      leafPos[i * 3] = (Math.random() - 0.5) * 80;
+      leafPos[i * 3 + 1] = 0.5 + Math.random() * 12;
+      leafPos[i * 3 + 2] = (Math.random() - 0.5) * 80;
+      leafVel.push({
+        vx: 0.8 + Math.random() * 0.6,
+        vy: -0.4 - Math.random() * 0.3,
+        vz: (Math.random() - 0.5) * 0.4,
+        sway: Math.random() * Math.PI * 2
+      });
+    }
+    leafGeom.setAttribute('position', new THREE.BufferAttribute(leafPos, 3));
+
+    const leafMat = new THREE.PointsMaterial({
+      color: 0xdf8432,
+      size: 0.35,
       transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending
+      opacity: 0.85
     });
 
-    const sparkSystem = new THREE.Points(sparkGeom, sparkMat);
-    this.scene.add(sparkSystem);
+    const leafSystem = new THREE.Points(leafGeom, leafMat);
+    this.scene.add(leafSystem);
 
     this.particles.push({
-      system: sparkSystem,
-      pos: sparkPos,
       update: (delta) => {
-        for (let i = 0; i < sparkCount; i++) {
-          sparkPos[i * 3 + 1] += 1.6 * delta;
-          sparkPos[i * 3] += (Math.random() - 0.5) * 0.3 * delta;
-          if (sparkPos[i * 3 + 1] > 4.5) {
-            sparkPos[i * 3] = 13.0 + (Math.random() - 0.5) * 1.5;
-            sparkPos[i * 3 + 1] = 1.6;
-            sparkPos[i * 3 + 2] = 22.0 + (Math.random() - 0.5) * 1.5;
+        for (let i = 0; i < leafCount; i++) {
+          leafVel[i].sway += delta * 2.0;
+          leafPos[i * 3] += (leafVel[i].vx + Math.sin(leafVel[i].sway) * 0.3) * delta;
+          leafPos[i * 3 + 1] += leafVel[i].vy * delta;
+          leafPos[i * 3 + 2] += leafVel[i].vz * delta;
+
+          if (leafPos[i * 3 + 1] < 0.2) {
+            leafPos[i * 3] = -40 + Math.random() * 20;
+            leafPos[i * 3 + 1] = 6 + Math.random() * 6;
+            leafPos[i * 3 + 2] = (Math.random() - 0.5) * 70;
           }
         }
-        sparkGeom.attributes.position.needsUpdate = true;
+        leafGeom.attributes.position.needsUpdate = true;
       }
     });
+  }
+
+  initSunsetGodRays() {
+    // Volumetric Sun Disc & God Rays in Western Sky (Dream Target)
+    const sunGroup = new THREE.Group();
+    sunGroup.position.set(-95, 26, -18);
+
+    // Glowing Sun Disc (Triggers UnrealBloomPass)
+    const sunDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(7.0, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0xffe2a8,
+        transparent: true,
+        opacity: 0.95
+      })
+    );
+    sunDisc.lookAt(0, 5, 0);
+    sunGroup.add(sunDisc);
+
+    // Radial God Ray Corona
+    const rayDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(24.0, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0xff8833,
+        transparent: true,
+        opacity: 0.38,
+        blending: THREE.AdditiveBlending
+      })
+    );
+    rayDisc.lookAt(0, 5, 0);
+    sunGroup.add(rayDisc);
+
+    this.scene.add(sunGroup);
   }
 
   initAmstatusDragonSilhouette() {
     // Black Dragon Amstatus (석양의 감시자 아무르타트)
     this.dragonGroup = new THREE.Group();
-    this.dragonGroup.position.set(-90, 36, -10);
+    this.dragonGroup.position.set(-88, 38, -12);
 
     const dragonMat = new THREE.MeshStandardMaterial({
-      color: 0x151118,
-      roughness: 0.9,
-      metalness: 0.2
+      color: 0x120e14,
+      roughness: 0.95,
+      metalness: 0.15
     });
 
-    // Dragon Torso
-    const bodyGeom = new THREE.ConeGeometry(3.2, 11.0, 8);
+    // Aerodynamic draconic body
+    const bodyGeom = new THREE.ConeGeometry(3.4, 12.5, 8);
     bodyGeom.rotateZ(Math.PI / 2);
     const body = new THREE.Mesh(bodyGeom, dragonMat);
     this.dragonGroup.add(body);
 
-    // Long Draconic Neck & Horned Head
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.0, 6.5, 8), dragonMat);
-    neck.position.set(5.5, 2.5, 0);
-    neck.rotation.z = -Math.PI / 4;
+    // Curved S-Neck & Horned Head
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 2.2, 7.5, 8), dragonMat);
+    neck.position.set(6.0, 2.8, 0);
+    neck.rotation.z = -Math.PI / 3.8;
     this.dragonGroup.add(neck);
 
-    const head = new THREE.Mesh(new THREE.ConeGeometry(1.4, 4.2, 6), dragonMat);
-    head.position.set(8.2, 4.5, 0);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(1.6, 4.8, 8), dragonMat);
+    head.position.set(9.2, 4.8, 0);
     head.rotation.z = -Math.PI / 2.2;
     this.dragonGroup.add(head);
 
-    // Glowing Crimson Eyes of Amstatus
+    // Glowing Crimson Eyes (UnrealBloom glow)
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0022 });
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), eyeMat);
-    eyeL.position.set(7.5, 4.8, 0.7);
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), eyeMat);
+    eyeL.position.set(8.4, 5.2, 0.8);
     this.dragonGroup.add(eyeL);
 
-    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), eyeMat);
-    eyeR.position.set(7.5, 4.8, -0.7);
+    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), eyeMat);
+    eyeR.position.set(8.4, 5.2, -0.8);
     this.dragonGroup.add(eyeR);
 
-    // Horns
-    [-0.5, 0.5].forEach(hz => {
-      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.4, 3.0, 5), dragonMat);
-      horn.position.set(6.8, 5.8, hz);
-      horn.rotation.z = -Math.PI / 6;
+    // Twin Horns
+    [-0.6, 0.6].forEach(hz => {
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.45, 3.6, 6), dragonMat);
+      horn.position.set(7.5, 6.2, hz);
+      horn.rotation.z = -Math.PI / 5;
       this.dragonGroup.add(horn);
     });
 
-    // Tail
-    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 1.8, 12.0, 6), dragonMat);
-    tail.position.set(-9.5, -2.0, 0);
-    tail.rotation.z = Math.PI / 2.8;
+    // Long whipping tail
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 2.0, 14.0, 8), dragonMat);
+    tail.position.set(-10.5, -2.4, 0);
+    tail.rotation.z = Math.PI / 2.7;
     this.dragonGroup.add(tail);
 
-    // Great Wings (Left & Right)
+    // Majestic Wings (Left & Right)
     this.dragonWingL = new THREE.Group();
-    this.dragonWingL.position.set(0, 2.0, 2.2);
-    const wingGeomL = new THREE.BoxGeometry(10.0, 0.2, 14.0);
-    const wingL = new THREE.Mesh(wingGeomL, dragonMat);
-    wingL.position.set(-1.0, 0, 7.0);
-    wingL.rotation.y = 0.2;
+    this.dragonWingL.position.set(0, 2.2, 2.4);
+    const wingL = new THREE.Mesh(new THREE.BoxGeometry(11.0, 0.2, 16.0), dragonMat);
+    wingL.position.set(-1.2, 0, 8.0);
+    wingL.rotation.y = 0.22;
     this.dragonWingL.add(wingL);
     this.dragonGroup.add(this.dragonWingL);
 
     this.dragonWingR = new THREE.Group();
-    this.dragonWingR.position.set(0, 2.0, -2.2);
-    const wingGeomR = new THREE.BoxGeometry(10.0, 0.2, 14.0);
-    const wingR = new THREE.Mesh(wingGeomR, dragonMat);
-    wingR.position.set(-1.0, 0, -7.0);
-    wingR.rotation.y = -0.2;
+    this.dragonWingR.position.set(0, 2.2, -2.4);
+    const wingR = new THREE.Mesh(new THREE.BoxGeometry(11.0, 0.2, 16.0), dragonMat);
+    wingR.position.set(-1.2, 0, -8.0);
+    wingR.rotation.y = -0.22;
     this.dragonWingR.add(wingR);
     this.dragonGroup.add(this.dragonWingR);
 
-    // Face towards the village (East)
     this.dragonGroup.rotation.y = Math.PI / 2.2;
     this.scene.add(this.dragonGroup);
   }
 
   update(delta, time) {
-    // Animate water shimmer
     if (this.waterMesh) {
-      this.waterMesh.position.y = 0.05 + Math.sin(time * 2.0) * 0.02;
+      this.waterMesh.position.y = 0.06 + Math.sin(time * 2.2) * 0.02;
     }
 
-    // Animate Amstatus wing flap & gentle float
     if (this.dragonGroup) {
-      this.dragonGroup.position.y = 36 + Math.sin(time * 0.8) * 1.5;
-      const flap = Math.sin(time * 1.4) * 0.35;
+      this.dragonGroup.position.y = 38 + Math.sin(time * 0.75) * 1.8;
+      const flap = Math.sin(time * 1.35) * 0.36;
       this.dragonWingL.rotation.x = flap;
       this.dragonWingR.rotation.x = -flap;
     }
 
-    // Animate particle systems
     for (let i = 0; i < this.particles.length; i++) {
       this.particles[i].update(delta);
     }
