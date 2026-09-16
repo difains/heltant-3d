@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>드래곤 라자: 헬턴트 영지 3D 탐험 (Project Heltant 3D)</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- Reticle / Crosshair for 1st Person -->
+  <div id="crosshair"></div>
+
+  <!-- HUD Overlay -->
+  <div id="hud">
+    <!-- Top Left: Title & Lore Header -->
+    <div id="title-badge">
+      <div class="badge-sub">DRAGON RAJA · THE FRONTIER</div>
+      <h1 class="badge-title">바이서스 북서부 국경 · 헬턴트 영지</h1>
+      <div class="badge-desc" id="current-location-text">현재 위치: 마을 중앙 광장</div>
+    </div>
+
+    <!-- Top Right: Minimap Radar -->
+    <div id="minimap-container">
+      <canvas id="minimap-canvas" width="180" height="180"></canvas>
+      <div id="minimap-label">HELANT MAP</div>
+      <div id="compass-n">N</div>
+      <div id="compass-w">서쪽 숲 (아무르타트)</div>
+    </div>
+
+    <!-- Bottom Left: Controls Guide & Status -->
+    <div id="controls-panel">
+      <div class="panel-header">조작 안내</div>
+      <div class="control-row"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 이동</div>
+      <div class="control-row"><span class="key">Shift</span> 달리기 · <span class="key">Space</span> 점프</div>
+      <div class="control-row"><span class="key">마우스 좌클릭</span> 시점 회전 (화면 고정)</div>
+      <div class="control-row"><span class="key">V</span> 1인칭 / 3인칭 시점 전환 (<span id="view-mode-label">1인칭</span>)</div>
+      <div class="control-row"><span class="key">G</span> OPG(오거 파워 건틀릿) <span id="opg-status-text" class="status-off">[OFF]</span></div>
+      <div class="control-row"><span class="key">T</span> 시간대 전환 (<span id="tod-mode-label">황혼 석양</span>)</div>
+      <div class="control-row"><span class="key">M</span> 사운드 켜기/끄기</div>
+    </div>
+
+    <!-- Center Interaction Prompt -->
+    <div id="interaction-prompt" class="hidden">
+      <div class="prompt-icon">[E]</div>
+      <div class="prompt-content">
+        <div class="prompt-title" id="prompt-target-name">후치의 초 공방</div>
+        <div class="prompt-hint">조사하기 (스토리 확인)</div>
+      </div>
+    </div>
+
+    <!-- OPG Power Glow Vignette -->
+    <div id="opg-vignette" class="hidden"></div>
+  </div>
+
+  <!-- Narrative / Dialogue Parchment Modal -->
+  <div id="dialogue-modal" class="hidden">
+    <div class="modal-backdrop"></div>
+    <div class="parchment-frame">
+      <button id="modal-close-btn" aria-label="닫기">✕</button>
+      <div class="parchment-header">
+        <span class="parchment-tag" id="modal-tag">초장이의 아들</span>
+        <h2 class="parchment-title" id="modal-title">후치의 집 & 초 공방</h2>
+      </div>
+      <div class="parchment-divider"></div>
+      <div class="parchment-body">
+        <p class="dialogue-quote" id="modal-quote">"내 이름은 후치 네드발. 열일곱 살이다. 직업은 초장이의 아들."</p>
+        <p class="dialogue-text" id="modal-desc">
+          헬턴트 영지의 초 공방. 아버지가 끓이던 향긋한 쇠기름과 밀랍 냄새가 은은하게 배어있습니다.
+        </p>
+        <div class="dialogue-meta" id="modal-meta">
+          <span class="meta-label">관련 인물:</span> 후치 네드발, 아버지 네드발
+        </div>
+      </div>
+      <div class="parchment-footer">
+        <button id="modal-confirm-btn">확인 (E / ESC)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start / Audio Enable Overlay Screen -->
+  <div id="start-screen">
+    <div class="start-card">
+      <div class="start-crown">✦ ✦ ✦</div>
+      <h1 class="start-title">드래곤 라자 : 헬턴트</h1>
+      <p class="start-subtitle">"인간은 단수가 아니다. 우리는 복수다."</p>
+      <p class="start-desc">
+        바이서스 왕국 서쪽 변방, '석양의 감시자' 블랙 드래곤 아무르타트의 위협에 둘러싸인 
+        후치 네드발의 고향 <b>헬턴트 마을</b>을 3D로 탐험해보세요.
+      </p>
+      <div class="start-features">
+        <div class="feat-item">🏰 7대 원작 랜드마크 구현</div>
+        <div class="feat-item">🥊 OPG(오거 파워 건틀릿) 마력 체험</div>
+        <div class="feat-item">🌅 서쪽 숲 황혼 / 밤 / 아침 조명 무드</div>
+        <div class="feat-item">🚶 1인칭 및 3인칭 보행 내비게이션</div>
+      </div>
+      <button id="start-btn" class="btn-primary">헬턴트 마을로 들어가기</button>
+      <div class="start-subnote">※ 클릭 시 오디오 앰비언스가 활성화되며 마우스 시점 고정이 시작됩니다.</div>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
