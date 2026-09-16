@@ -11,57 +11,89 @@ export class BuildingBuilder {
     this.lighting = lightingManager;
     this.colliders = [];
     this.animatedObjects = [];
+    this.textureLoader = new THREE.TextureLoader();
 
     this.initMaterials();
   }
 
   initMaterials() {
-    const woodTex = this.createWoodTexture();
-    const stoneTex = this.createStoneTexture();
-    const roofTex = this.createRoofTexture();
+    const loadTex = (path, rx = 2, ry = 2) => {
+      const t = this.textureLoader.load(path);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(rx, ry);
+      return t;
+    };
+
+    const woodTex = loadTex('assets/wood_diffuse.jpg', 2, 2);
+    const woodNormal = loadTex('assets/wood_normal.jpg', 2, 2);
+    const woodRough = loadTex('assets/wood_roughness.jpg', 2, 2);
+
+    const stoneTex = loadTex('assets/brick_diffuse.jpg', 3, 3);
+    const stoneNormal = loadTex('assets/brick_normal.jpg', 3, 3);
+    const stoneRough = loadTex('assets/brick_roughness.jpg', 3, 3);
+
+    const roofTex = loadTex('assets/roof_diffuse.jpg', 4, 4);
+    const roofNormal = loadTex('assets/roof_normal.jpg', 4, 4);
+
     const plasterTex = this.createPlasterTexture();
 
-    // High quality PBR materials with roughness & metalness subtlety
+    // High quality PBR materials with normal maps & roughness subtlety
     this.matWood = new THREE.MeshStandardMaterial({
       map: woodTex,
+      normalMap: woodNormal,
+      normalScale: new THREE.Vector2(1.0, 1.0),
+      roughnessMap: woodRough,
       roughness: 0.75,
       metalness: 0.08,
-      color: 0x48321e
+      color: 0x7a5b3d
     });
 
     this.matWoodLight = new THREE.MeshStandardMaterial({
       map: woodTex,
+      normalMap: woodNormal,
+      normalScale: new THREE.Vector2(0.8, 0.8),
+      roughnessMap: woodRough,
       roughness: 0.7,
       metalness: 0.05,
-      color: 0x684c31
+      color: 0x96734e
     });
 
     this.matStone = new THREE.MeshStandardMaterial({
       map: stoneTex,
+      normalMap: stoneNormal,
+      normalScale: new THREE.Vector2(1.3, 1.3),
+      roughnessMap: stoneRough,
       roughness: 0.85,
-      metalness: 0.12,
-      color: 0x6e6e74
+      metalness: 0.1,
+      color: 0x908c88
     });
 
     this.matStoneDark = new THREE.MeshStandardMaterial({
       map: stoneTex,
+      normalMap: stoneNormal,
+      normalScale: new THREE.Vector2(1.4, 1.4),
+      roughnessMap: stoneRough,
       roughness: 0.88,
-      metalness: 0.15,
-      color: 0x3e3e44
+      metalness: 0.12,
+      color: 0x585450
     });
 
     this.matRoof = new THREE.MeshStandardMaterial({
       map: roofTex,
+      normalMap: roofNormal,
+      normalScale: new THREE.Vector2(1.2, 1.2),
       roughness: 0.65,
-      metalness: 0.15,
-      color: 0x7a3928
+      metalness: 0.12,
+      color: 0x9a4430
     });
 
     this.matRoofBlue = new THREE.MeshStandardMaterial({
       map: roofTex,
+      normalMap: roofNormal,
+      normalScale: new THREE.Vector2(1.2, 1.2),
       roughness: 0.65,
-      metalness: 0.18,
-      color: 0x364757
+      metalness: 0.15,
+      color: 0x3e556b
     });
 
     this.matPlaster = new THREE.MeshStandardMaterial({
