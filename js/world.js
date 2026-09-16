@@ -11,10 +11,13 @@ export class WorldManager {
     this.colliders = colliders;
     this.particles = [];
     this.waterMesh = null;
+    this.waterNormalTex = null;
+    this.textureLoader = new THREE.TextureLoader();
 
     this.initTerrain();
     this.initRoads();
     this.initStreamAndBridge();
+    this.initMountainBackdrop();
     this.initTreesAndVegetation();
     this.initPropsAndDetails();
     this.initParticles();
@@ -24,35 +27,32 @@ export class WorldManager {
 
   initTerrain() {
     const size = 160;
-    const geom = new THREE.PlaneGeometry(size, size, 32, 32);
+    const geom = new THREE.PlaneGeometry(size, size, 48, 48);
     geom.rotateX(-Math.PI / 2);
 
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#3c3222';
-    ctx.fillRect(0, 0, 512, 512);
-
-    // Subtle mossy earth gradients
-    ctx.fillStyle = 'rgba(56, 74, 38, 0.4)';
-    for (let i = 0; i < 450; i++) {
-      const x = Math.random() * 512;
-      const y = Math.random() * 512;
-      const r = 10 + Math.random() * 30;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
+    // Add gentle organic ground contours
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      const distFromCenter = Math.sqrt(x * x + z * z);
+      // Soft grassy hills rising outward away from village center
+      if (distFromCenter > 20) {
+        const h = Math.sin(x * 0.08) * Math.cos(z * 0.08) * 0.65 + Math.sin(x * 0.15) * 0.25;
+        pos.setY(i, Math.max(0, h * Math.min(1.0, (distFromCenter - 20) / 40)));
+      }
     }
+    geom.computeVertexNormals();
 
-    const groundTex = new THREE.CanvasTexture(canvas);
-    groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
-    groundTex.repeat.set(12, 12);
+    const grassTex = this.textureLoader.load('assets/grass_diffuse.jpg');
+    grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+    grassTex.repeat.set(22, 22);
 
     const mat = new THREE.MeshStandardMaterial({
-      map: groundTex,
-      roughness: 0.9,
-      metalness: 0.05
+      map: grassTex,
+      roughness: 0.92,
+      metalness: 0.04,
+      color: 0x82946e // lush medieval forest valley tint
     });
 
     const ground = new THREE.Mesh(geom, mat);
@@ -68,43 +68,27 @@ export class WorldManager {
   }
 
   initRoads() {
-    // Wet Cobblestone Paving (Dream Target aesthetic)
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#443e37';
-    ctx.fillRect(0, 0, 512, 512);
+    // Wet Cobblestone Paving with true Tangent Normal Map and Roughness
+    const cobbleTex = this.textureLoader.load('assets/cobble_diffuse.jpg');
+    cobbleTex.wrapS = cobbleTex.wrapT = THREE.RepeatWrapping;
+    cobbleTex.repeat.set(2, 8);
 
-    // Individual rounded pavers
-    const pw = 28, ph = 18;
-    for (let y = 0; y < 512; y += ph) {
-      const shift = (Math.floor(y / ph) % 2 === 0) ? 0 : 14;
-      for (let x = -14 + shift; x < 512; x += pw) {
-        ctx.fillStyle = '#221f1c'; // Mortar
-        ctx.fillRect(x, y, pw, ph);
+    const cobbleNormal = this.textureLoader.load('assets/cobble_normal.jpg');
+    cobbleNormal.wrapS = cobbleNormal.wrapT = THREE.RepeatWrapping;
+    cobbleNormal.repeat.set(2, 8);
 
-        // Stone top
-        ctx.fillStyle = (Math.random() > 0.4) ? '#5c5449' : '#696053';
-        ctx.beginPath();
-        ctx.roundRect(x + 2, y + 2, pw - 4, ph - 4, 3);
-        ctx.fill();
+    const cobbleRough = this.textureLoader.load('assets/cobble_roughness.jpg');
+    cobbleRough.wrapS = cobbleRough.wrapT = THREE.RepeatWrapping;
+    cobbleRough.repeat.set(2, 8);
 
-        // Wet stone specular sheen
-        ctx.fillStyle = 'rgba(255, 230, 200, 0.15)';
-        ctx.fillRect(x + 3, y + 3, pw - 6, 2);
-      }
-    }
-
-    const roadTex = new THREE.CanvasTexture(canvas);
-    roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
-    roadTex.repeat.set(1, 10);
-
-    // Low roughness gives realistic wet-stone reflections
     const roadMat = new THREE.MeshStandardMaterial({
-      map: roadTex,
-      roughness: 0.52,
-      metalness: 0.25
+      map: cobbleTex,
+      normalMap: cobbleNormal,
+      normalScale: new THREE.Vector2(1.5, 1.5),
+      roughnessMap: cobbleRough,
+      roughness: 0.55,
+      metalness: 0.2,
+      color: 0x827c75
     });
 
     const roads = [
@@ -132,10 +116,16 @@ export class WorldManager {
     const riverBedGeom = new THREE.PlaneGeometry(streamW, streamL);
     riverBedGeom.rotateX(-Math.PI / 2);
 
+    this.waterNormalTex = this.textureLoader.load('assets/waternormals.jpg');
+    this.waterNormalTex.wrapS = this.waterNormalTex.wrapT = THREE.RepeatWrapping;
+    this.waterNormalTex.repeat.set(2, 16);
+
     const waterMat = new THREE.MeshStandardMaterial({
-      color: 0x1a4555,
-      roughness: 0.05,
-      metalness: 0.9,
+      color: 0x1d4d60,
+      normalMap: this.waterNormalTex,
+      normalScale: new THREE.Vector2(0.9, 0.9),
+      roughness: 0.08,
+      metalness: 0.88,
       transparent: true,
       opacity: 0.88
     });
@@ -163,6 +153,26 @@ export class WorldManager {
     });
 
     this.scene.add(bridgeGroup);
+  }
+
+  initMountainBackdrop() {
+    // Dream Target: Majestic Sunset Horizon Mountain Valley Panorama
+    const backdropTex = this.textureLoader.load('assets/dream_backdrop.jpg');
+    backdropTex.wrapS = THREE.RepeatWrapping;
+    backdropTex.repeat.set(2, 1);
+
+    const cylGeom = new THREE.CylinderGeometry(175, 175, 240, 48, 1, true);
+    const cylMat = new THREE.MeshBasicMaterial({
+      map: backdropTex,
+      side: THREE.BackSide,
+      fog: false,
+      depthWrite: false
+    });
+
+    const backdropMesh = new THREE.Mesh(cylGeom, cylMat);
+    backdropMesh.position.set(0, 50, 0);
+    backdropMesh.rotation.y = -Math.PI * 0.55; // Face sunset towards western sky
+    this.scene.add(backdropMesh);
   }
 
   initTreesAndVegetation() {
@@ -199,7 +209,7 @@ export class WorldManager {
       this.colliders.push({ minX: tx - 0.8, maxX: tx + 0.8, minZ: tz - 0.8, maxZ: tz + 0.8, name: 'Pine Tree' });
     }
 
-    // Village Autumn Trees
+    // Village Autumn Trees (Multi-cluster sculpt)
     const villageTrees = [
       [11, -22], [5, 19], [-12, -18], [-8, 22], [28, -25], [26, 26], [-28, -28], [-18, 30]
     ];
@@ -211,10 +221,23 @@ export class WorldManager {
       tree.add(trunk);
 
       const folMat = (idx % 2 === 0) ? autumnMat : goldMat;
-      const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(3.0, 1), folMat);
-      foliage.position.y = 5.5;
-      foliage.castShadow = true;
-      tree.add(foliage);
+      const foliageGroup = new THREE.Group();
+      foliageGroup.position.y = 5.2;
+
+      const clusters = [
+        { x: 0, y: 0.6, z: 0, r: 2.5 },
+        { x: -1.1, y: -0.2, z: 0.7, r: 1.8 },
+        { x: 1.0, y: -0.3, z: -0.8, r: 1.8 },
+        { x: 0.7, y: 0.2, z: 0.9, r: 1.6 },
+        { x: -0.8, y: 0.1, z: -0.9, r: 1.7 }
+      ];
+      clusters.forEach(c => {
+        const f = new THREE.Mesh(new THREE.DodecahedronGeometry(c.r, 1), folMat);
+        f.position.set(c.x, c.y, c.z);
+        f.castShadow = true;
+        foliageGroup.add(f);
+      });
+      tree.add(foliageGroup);
 
       tree.position.set(vx, 0, vz);
       this.scene.add(tree);
@@ -474,7 +497,11 @@ export class WorldManager {
 
   update(delta, time) {
     if (this.waterMesh) {
-      this.waterMesh.position.y = 0.06 + Math.sin(time * 2.2) * 0.02;
+      this.waterMesh.position.y = 0.06 + Math.sin(time * 2.2) * 0.015;
+    }
+    if (this.waterNormalTex) {
+      this.waterNormalTex.offset.y += delta * 0.08;
+      this.waterNormalTex.offset.x += delta * 0.012;
     }
 
     if (this.dragonGroup) {
